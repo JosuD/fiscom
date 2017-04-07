@@ -1,5 +1,6 @@
 /* Esta version tiene otra forma de visualizar la matriz
-Además, arma la matriz dinámica habilitando el espacio en la memoria */
+Además, arma la matriz dinámica habilitando el espacio en la memoria, es decir
+como memoria dinámica, pero como un **, cosa no muy estándar. */
 
 #include <stdio.h>
 #include <stdlib.h>
