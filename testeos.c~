@@ -1,0 +1,48 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+void llenar(int *red,int n,float prob);
+int randomvalue(float p);
+void imprimir(int* red, int n, int m);	
+
+main(){
+	srand(time(NULL));	
+	int n, *red;
+	float prob;
+	n = 5;
+	prob = 0.5;	
+	red=(int *)malloc(n*n*sizeof(int));
+	llenar(red,n,prob);
+	imprimir(red,n,n);
+
+}
+
+void llenar(int *red,int n,float prob){
+        int i,j;
+        for(i=0;i<n;i=i+1){ 	// Armo la matriz con 0 y 1
+                for(j=0; j<n; j= j+1){
+                        red[i*n+j] = randomvalue(prob);
+                        }
+                }
+}
+
+int randomvalue(float p){
+        int val;
+	float x;
+	x = (float)rand()/((float)RAND_MAX); // Valor de distribución uniforme entre 0 y 1
+	if(x<p)
+		val = 0;
+	else
+		val = 1;
+        return val;
+}
+
+void imprimir(int* red, int n, int m){	
+	int row, columns;
+	for (row=0; row<n; row++){
+		for(columns=0; columns<m; columns++)
+			printf("%d     ", red[row*n+columns]);
+    		printf("\n");
+	}
+}
