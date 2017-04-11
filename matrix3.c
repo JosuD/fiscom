@@ -1,5 +1,5 @@
 /* Este programa tiene el imprimir y el llenar como lo piden en la materia, llamando a 
-los elementos de la matriz con álgebra de punteros */
+los elementos de la matriz con álgebra de punteros. También tiene la función exportar, que exporta a un archivo la matriz generada */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +7,8 @@ los elementos de la matriz con álgebra de punteros */
 
 void llenar(int *red,int n,float prob);
 int randomvalue(float p);
-void imprimir(int* red, int n, int m);	
+void imprimir(int* red, int n, int m);
+void exportar(int *z, int n, int m);
 
 main(){
 	srand(time(NULL));	
@@ -18,6 +19,7 @@ main(){
 	red=(int *)malloc(n*n*sizeof(int));
 	llenar(red,n,prob);
 	imprimir(red,n,n);
+	exportar(red, n, n);
 
 }
 
@@ -48,4 +50,17 @@ void imprimir(int* red, int n, int m){
 			printf("%d     ", red[row*n+columns]);
     		printf("\n");
 	}
+}
+
+void exportar(int *z, int n, int m){
+	int i,j;
+	FILE *fp;
+	fp = fopen("myfile.txt", "a");
+	for(i = 0; i< n; i++){
+		for(j=0; j<m; j++){
+			fprintf(fp, "%d \t", *(z+n*i+j));		
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
 }

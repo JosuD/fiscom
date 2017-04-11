@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define P     16             // 1/2^P, P=16
-#define Z     27000          // iteraciones
-#define N     30             // lado de la red simulada
+#define P     1              // 1/2^P, P=16
+#define Z     1              // iteraciones, deberían ser 27000
+#define N     6             // lado de la red simulada
 
 
 void  llenar(int *red,int n,float prob); // Esta está
@@ -12,13 +12,14 @@ int   hoshen(int *red,int n); // Esta parece que está
 void  imprimir(int* red, int n, int m); // Esta está
 int   randomvalue(float p); // Esta está
 int   actualizar(int *red,int *clase,int s,int frag); // Ya está
-void  etiqueta_falsa(int *red,int *clase,int s1,int s2); // Ya está
+void  etiqueta_falsa(int *red,int *clase,int s1,int s2, int i); // Ya está
 void  corregir_etiqueta(int *red,int *clase,int n); // Ya está
-int   percola(int *red,int n, int frag); // ya casi está
+int   percola(int *red,int n); // ya está
+void  exportar(int *z, int n, int m);
 
 int main(int argc,char *argv[])
 {
-  int    i,j,*red;
+  int    i,j, n, z,*red;
   float  prob,denominador;
 
   n=N;
@@ -44,6 +45,8 @@ int main(int argc,char *argv[])
           llenar(red,n,prob);
       
           hoshen(red,n);
+
+	  exportar(red,n,n);
         
           denominador=2.0*denominador;
 
@@ -116,7 +119,7 @@ int hoshen(int *red,int n)
 
 	    if (s1*s2>0)
 	      {
-		etiqueta_falsa(red+i+j,clase,s1,s2); // Este si resuelve conflictos. S1 y S2 son las etiquetas de el anterior y el de arriba. 
+		etiqueta_falsa(red+i+j,clase,s1,s2,i); // Este si resuelve conflictos. S1 y S2 son las etiquetas de el anterior y el de arriba. 
 	      }
 	    else 
 	      { if (s1!=0) frag=actualizar(red+i+j,clase,s1,frag);
@@ -128,7 +131,7 @@ int hoshen(int *red,int n)
 
   corregir_etiqueta(red,clase,n);
 
-  free(clase):
+  free(clase);
 
   return 0;
 }
@@ -177,9 +180,9 @@ int actualizar(int *red,int *clase,int s,int frag){
 	return frag;	
 }
 
-void corregir_etiqueta(int *red, int *clase, n){
-	int i;	
-	for(i=0; i<n*n, i++){
+void corregir_etiqueta(int *red, int *clase, int n){
+	int i,s;	
+	for(i=0; i<n*n; i++){
 		s = *(red+i);
 		while(*(clase+s)<0){
 			s = - *(clase+s);
@@ -189,38 +192,43 @@ void corregir_etiqueta(int *red, int *clase, n){
 }
 
 
-void etiqueta_falsa(int *red,int *clase,int s1,int s2){	
+void etiqueta_falsa(int *red,int *clase,int s1,int s2, int i){	
 	while(*(clase+s1)<0)
 		s1 = - *(clase+s1);
 	while(*(clase + s2)<0)
 		s2 = - *(clase+s2);
 	if(s1 < s2){
-		*(clase+s2) = -s1
+		*(clase+s2) = -s1;
 		*(clase+s1) = s1;
 		*(red+i) = s1;
 	}
 }
 
-int percola(int *red,int n){
-	int *sup[max], *inf[max], i, out
-	out = 0
-	for(i=0; i<max; i++){ //  lleno de ceros los vectores de control
-		*(sup+i) = 0;
-		*(inf+i) = 0;
-	}	
+int percola(int *red, int n){
+	int i,j, out;
+	out = 0;
 	for(i=0; i<n; i++){
-		if(*(red+i))		
-			*(sup+*(red+i)) = 1;
-		if(*(red+n*(n-1)+i))
-			*(inf+*(red+n*(n-1)+i)) = 1;
-	}
-	for(i=0; i<n; i++){
-		if(*(sup+i) == *(inf+i)){
-			out = 1;
-			break;
-	}
+		for(j=0; j<n; j++){
+			if(*(red + i) == *(red +n*(n-1) + j)){
+				out = 1;
+				break;
+			}
+		}	
+	} 
 	return out;
 }
 
+void exportar(int *z, int n, int m){
+	int i,j;
+	FILE *fp;
+	fp = fopen("myfile.txt", "a");
+	for(i = 0; i< n; i++){
+		for(j=0; j<m-1; j++){
+			fprintf(fp, "%d\t", *(z+n*i+j));		
+		}
+		fprintf(fp, "%d\n", *(z+n*i+j+1));
+	}
+	fclose(fp);
+}
 
 
