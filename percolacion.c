@@ -11,10 +11,10 @@ void  llenar(int *red,int n,float prob); // Esta está
 int   hoshen(int *red,int n); // Esta parece que está
 void  imprimir(int* red, int n, int m); // Esta está
 int   randomvalue(float p); // Esta está
-int   actualizar(int *red,int *clase,int s,int frag);
-void  etiqueta_falsa(int *red,int *clase,int s1,int s2);
-void  corregir_etiqueta(int *red,int *clase,int n);
-int   percola(int *red,int n);
+int   actualizar(int *red,int *clase,int s,int frag); // Ya está
+void  etiqueta_falsa(int *red,int *clase,int s1,int s2); // Ya está
+void  corregir_etiqueta(int *red,int *clase,int n); // Ya está
+int   percola(int *red,int n, int frag); // ya casi está
 
 int main(int argc,char *argv[])
 {
@@ -162,9 +162,65 @@ void imprimir(int* red, int n, int m){
 	}
 }
 
-int actualizar(red,clase,s1,frag){
-	*red = s1;
-	*clase = si;
-	frag = frag + 1;
-	return frag;
+int actualizar(int *red,int *clase,int s,int frag){
+	if(s){
+		while(*(clase+s)<0)
+			s = - *(clase+s);		
+		*red = s;
+		*(clase+s)=s;
+	}
+	else{
+		*red = frag;
+		*(clase+frag) = frag;
+		frag ++;
+	}
+	return frag;	
 }
+
+void corregir_etiqueta(int *red, int *clase, n){
+	int i;	
+	for(i=0; i<n*n, i++){
+		s = *(red+i);
+		while(*(clase+s)<0){
+			s = - *(clase+s);
+			*(red+i) = s;
+		}
+	}
+}
+
+
+void etiqueta_falsa(int *red,int *clase,int s1,int s2){	
+	while(*(clase+s1)<0)
+		s1 = - *(clase+s1);
+	while(*(clase + s2)<0)
+		s2 = - *(clase+s2);
+	if(s1 < s2){
+		*(clase+s2) = -s1
+		*(clase+s1) = s1;
+		*(red+i) = s1;
+	}
+}
+
+int percola(int *red,int n){
+	int *sup[max], *inf[max], i, out
+	out = 0
+	for(i=0; i<max; i++){ //  lleno de ceros los vectores de control
+		*(sup+i) = 0;
+		*(inf+i) = 0;
+	}	
+	for(i=0; i<n; i++){
+		if(*(red+i))		
+			*(sup+*(red+i)) = 1;
+		if(*(red+n*(n-1)+i))
+			*(inf+*(red+n*(n-1)+i)) = 1;
+	}
+	for(i=0; i<n; i++){
+		if(*(sup+i) == *(inf+i)){
+			out = 1;
+			break;
+	}
+	return out;
+}
+
+
+
