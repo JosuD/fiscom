@@ -4,7 +4,7 @@
 
 #define P     1              // 1/2^P, P=16
 #define Z     1              // iteraciones, deberían ser 27000
-#define N     6             // lado de la red simulada
+#define N     4             // lado de la red simulada
 
 
 void  llenar(int *red,int n,float prob); // Esta está
@@ -12,10 +12,11 @@ int   hoshen(int *red,int n); // Esta parece que está
 void  imprimir(int* red, int n, int m); // Esta está
 int   randomvalue(float p); // Esta está
 int   actualizar(int *red,int *clase,int s,int frag); // Ya está
-void  etiqueta_falsa(int *red,int *clase,int s1,int s2, int i); // Ya está
+void  etiqueta_falsa(int *red,int *clase,int s1,int s2); // Ya está
 void  corregir_etiqueta(int *red,int *clase,int n); // Ya está
 int   percola(int *red,int n); // ya está
 void  exportar(int *z, int n, int m);
+void imprimir_vector(int* clase, int n);
 
 int main(int argc,char *argv[])
 {
@@ -119,13 +120,15 @@ int hoshen(int *red,int n)
 
 	    if (s1*s2>0)
 	      {
-		etiqueta_falsa(red+i+j,clase,s1,s2,i); // Este si resuelve conflictos. S1 y S2 son las etiquetas de el anterior y el de arriba. 
+		etiqueta_falsa(red+i+j,clase,s1,s2); // Este si resuelve conflictos. S1 y S2 son las etiquetas de el anterior y el de arriba. 
 	      }
 	    else 
 	      { if (s1!=0) frag=actualizar(red+i+j,clase,s1,frag);
 	        else       frag=actualizar(red+i+j,clase,s2,frag);
 	      }
+	  
 	  }
+	imprimir_vector(clase,n*n);
     }
 
 
@@ -184,15 +187,15 @@ void corregir_etiqueta(int *red, int *clase, int n){
 	int i,s;	
 	for(i=0; i<n*n; i++){
 		s = *(red+i);
-		while(*(clase+s)<0){
+		while(*(clase+s)<0)
 			s = - *(clase+s);
-			*(red+i) = s;
-		}
+		*(red+i) = s;
+		
 	}
 }
 
 
-void etiqueta_falsa(int *red,int *clase,int s1,int s2, int i){	
+void etiqueta_falsa(int *red,int *clase,int s1,int s2){	
 	while(*(clase+s1)<0)
 		s1 = - *(clase+s1);
 	while(*(clase + s2)<0)
@@ -200,7 +203,13 @@ void etiqueta_falsa(int *red,int *clase,int s1,int s2, int i){
 	if(s1 < s2){
 		*(clase+s2) = -s1;
 		*(clase+s1) = s1;
-		*(red+i) = s1;
+		*(red) = s1;
+	}
+	else{
+		*(clase+s1) = -s2;
+		*(clase+s2) = s2;
+		*(red) = s2;
+		
 	}
 }
 
@@ -229,6 +238,18 @@ void exportar(int *z, int n, int m){
 		fprintf(fp, "%d\n", *(z+n*i+j+1));
 	}
 	fclose(fp);
+}
+
+void imprimir_vector(int* clase, int n){	// función para debbugear
+	int i;
+	FILE *fp;
+	fp = fopen("clase.txt","a");	
+	for (i=0; i<n; i++){
+		fprintf(fp, "%d\t     ", *(clase+i));
+		}
+    	fprintf(fp, "\n");
+	fclose(fp);
+	
 }
 
 
