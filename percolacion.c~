@@ -4,19 +4,21 @@
 
 #define P     1              // 1/2^P, P=16
 #define Z     1              // iteraciones, deberían ser 27000
-#define N     4             // lado de la red simulada
+#define N     16             // lado de la red simulada
 
 
 void  llenar(int *red,int n,float prob); // Esta está
 int   hoshen(int *red,int n); // Esta parece que está
 void  imprimir(int* red, int n, int m); // Esta está
 int   randomvalue(float p); // Esta está
-int   actualizar(int *red,int *clase,int s,int frag); // Ya está
-void  etiqueta_falsa(int *red,int *clase,int s1,int s2); // Ya está
+int   actualizar(int *red,int *clase,int s,int frag, int i, int j); // Ya está
+void  etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j); // Ya está
 void  corregir_etiqueta(int *red,int *clase,int n); // Ya está
 int   percola(int *red,int n); // ya está
 void  exportar(int *z, int n, int m);
 void imprimir_vector(int* clase, int n);
+void armar_red(int *red, int n);
+
 
 int main(int argc,char *argv[])
 {
@@ -44,15 +46,18 @@ int main(int argc,char *argv[])
       for(j=0;j<P;j++)
         {
           llenar(red,n,prob);
-      
-          hoshen(red,n);
-
+ 
+	  //armar_red(red, n); // armo una red a mano para testear hoshen
+          imprimir(red,n,n);
+  	  hoshen(red,n);
+	  imprimir(red,n,n);
 	  exportar(red,n,n);
         
           denominador=2.0*denominador;
 
           if (percola(red,n)) 
-             prob+=(-1.0/denominador); 
+             {prob+=(-1.0/denominador);
+	     printf("percolo!\n");} 
           else prob+=(1.0/denominador);
         }
     }
@@ -76,7 +81,8 @@ int hoshen(int *red,int n)
   int *clase;
 
   frag=0;
-  
+  i = 0;
+  j = 0;
   clase=(int *)malloc(n*n*sizeof(int));
 
   for(k=0;k<n*n;k++) *(clase+k)=frag; // Lleno de ceros el vector clase, que recién sólo estaba definido su espacio en memoria
@@ -85,33 +91,37 @@ int hoshen(int *red,int n)
 
   s1=0;
   frag=2; // última etiqueta conocida
-  if (*red) frag=actualizar(red,clase,s1,frag);
+  if (*red) frag=actualizar(red,clase,s1,frag, i, j);
+  imprimir(red, n,n);
   
   // primera fila de la red
 
-  for(i=1;i<n;i++) 
+  for(j=1;j<n;j++) 
     {
-      if (*(red+i)) 
+      if (*(red+j)) 
          {
-           s1=*(red+i-1);  
-           frag=actualizar(red+i,clase,s1,frag); // asigna una etiqueta o copia la "verdadera" etiqueta del vecino. No resuelve conflictos
-         }
+           s1=*(red+j-1);  
+           frag=actualizar(red+j,clase,s1,frag, i, j); // asigna una etiqueta o copia la "verdadera" etiqueta del vecino. No resuelve conflictos
+           //printf("la segunda direccion es %p\n", (void *) (red+j));  
+	}
+    imprimir(red,n,n);
     }
   
 
   // el resto de las filas 
-
+    
   for(i=n;i<n*n;i=i+n)
     {
-
+	j = 0;
       // primer elemento de cada fila
 
       if (*(red+i)) 
          {
            s1=*(red+i-n); 
-           frag=actualizar(red+i,clase,s1,frag);
-         }
+           frag=actualizar(red+i,clase,s1,frag, i, j);
 
+         }
+      imprimir(red,n,n);
       for(j=1;j<n;j++)
 	if (*(red+i+j))
 	  {
@@ -120,14 +130,16 @@ int hoshen(int *red,int n)
 
 	    if (s1*s2>0)
 	      {
-		etiqueta_falsa(red+i+j,clase,s1,s2); // Este si resuelve conflictos. S1 y S2 son las etiquetas de el anterior y el de arriba. 
+		etiqueta_falsa(red+i+j,clase,s1,s2, i, j); // Este si resuelve conflictos. S1 y S2 son las etiquetas de el anterior y el de arriba. 
 	      }
 	    else 
-	      { if (s1!=0) frag=actualizar(red+i+j,clase,s1,frag);
-	        else       frag=actualizar(red+i+j,clase,s2,frag);
+	      { if (s1!=0) frag=actualizar(red+i+j,clase,s1,frag, i, j);
+	        else       frag=actualizar(red+i+j,clase,s2,frag, i, j);
 	      }
-	  imprimir_vector(clase,n*n);
+	  
 	  }
+	imprimir_vector(clase,n*n);
+	imprimir(red,n,n);
     }
 
 
@@ -167,23 +179,29 @@ void imprimir(int* red, int n, int m){
 	}
 }
 
-int actualizar(int *red,int *clase,int s,int frag){
-	if(s){
+int actualizar(int *red,int *clase,int s,int frag, int i, int j){
+	printf("actualizar en posicion (%d, %d)\n", i, j);	
+	printf("entro frag = %d y s = %d \n", frag, s);
+	//printf("la direccion que entra es %p\n", (void *) red);
+	if(s>0){
 		while(*(clase+s)<0)
 			s = - *(clase+s);		
-		*red = s;
+		*(red) = s;
 		*(clase+s)=s;
+		printf("copio s = %d\n", s);
 	}
 	else{
-		*red = frag;
+		*(red) = frag;
 		*(clase+frag) = frag;
 		frag ++;
+		printf("nuevo fragmento\n");
 	}
 	return frag;	
 }
 
 void corregir_etiqueta(int *red, int *clase, int n){
-	int i,s;	
+	int i,s;
+	printf("actua corregir etiqueta\n");	
 	for(i=0; i<n*n; i++){
 		s = *(red+i);
 		while(*(clase+s)<0)
@@ -194,7 +212,8 @@ void corregir_etiqueta(int *red, int *clase, int n){
 }
 
 
-void etiqueta_falsa(int *red,int *clase,int s1,int s2){	
+void etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j){	
+	printf("actuo etiqueta falsa en posicion (%d, %d)\n", i, j);	
 	while(*(clase+s1)<0)
 		s1 = - *(clase+s1);
 	while(*(clase + s2)<0)
@@ -230,11 +249,11 @@ void exportar(int *z, int n, int m){
 	int i,j;
 	FILE *fp;
 	fp = fopen("myfile.txt", "a");
-	for(i = 0; i< n; i++){
+	for(i = 0; i< n; i++){ //fprintf(fp, "%d\t", *(z+i));
 		for(j=0; j<m-1; j++){
 			fprintf(fp, "%d\t", *(z+n*i+j));		
 		}
-		fprintf(fp, "%d\n", *(z+n*i+j+1));
+		fprintf(fp, "%d\n", *(z+n*i+j));
 	}
 	fclose(fp);
 }
@@ -249,6 +268,21 @@ void imprimir_vector(int* clase, int n){	// función para debbugear
     	fprintf(fp, "\n");
 	fclose(fp);
 	
+}
+
+void armar_red(int *red, int n){ // pienso en una red 3x3
+	//int i,j;
+	*red = 0;
+	*(red+1)=0;
+	*(red+2)=1;
+	*(red+3)=1;
+	*(red+4)=1;
+	*(red+5)=1;
+	*(red+6)=1;
+	*(red+7)=0;
+	*(red+8)=0;
+//	*(red+9)=1;
+
 }
 
 
