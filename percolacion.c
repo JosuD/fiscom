@@ -4,7 +4,7 @@
 
 #define P     1              // 1/2^P, P=16
 #define Z     1              // iteraciones, deberían ser 27000
-#define N     3             // lado de la red simulada
+#define N     6             // lado de la red simulada
 
 
 void  llenar(int *red,int n,float prob); // Esta está
@@ -16,8 +16,8 @@ void  etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j); // Ya est
 void  corregir_etiqueta(int *red,int *clase,int n); // Ya está
 int   percola(int *red,int n); // ya está
 void  exportar(int *z, int n, int m);
-void imprimir_vector(int* clase, int n);
-void armar_red(int *red, int n);
+void  imprimir_vector(int* vector, int n);
+void  armar_red(int *red, int n);
 
 
 int main(int argc,char *argv[])
@@ -45,9 +45,9 @@ int main(int argc,char *argv[])
 
       for(j=0;j<P;j++)
         {
-          //llenar(red,n,prob);
+          llenar(red,n,prob);
  
-	  armar_red(red, n); // armo una red a mano para testear hoshen
+	  //armar_red(red, n); // armo una red a mano para testear hoshen
           imprimir(red,n,n);
   	  hoshen(red,n);
 	  imprimir(red,n,n);
@@ -58,7 +58,9 @@ int main(int argc,char *argv[])
           if (percola(red,n)) 
              {prob+=(-1.0/denominador);
 	     printf("percolo!\n");} 
-          else prob+=(1.0/denominador);
+          else{ 
+	      prob+=(1.0/denominador);
+	      printf("no pecolo :(\n");}
         }
     }
 
@@ -138,7 +140,7 @@ int hoshen(int *red,int n)
 	      }
 	  
 	  }
-	imprimir_vector(clase,n*n);
+	//imprimir_vector(clase,n*n);
 	imprimir(red,n,n);
     }
 
@@ -236,12 +238,14 @@ int percola(int *red, int n){
 	out = 0;
 	for(i=0; i<n; i++){
 		for(j=0; j<n; j++){
-			if(*(red + i) == *(red +n*(n-1) + j)){
+			if((*(red+i)!=0) && (*(red +n*(n-1) + j) != 0) && (*(red + i) == *(red +n*(n-1) + j))){ //pido celdas !=0 que valgan lo mismo
 				out = 1;
 				break;
 			}
 		}	
-	} 
+	}
+	imprimir_vector(red, n);
+	imprimir_vector(red+n*(n-1), n);
 	return out;
 }
 
@@ -258,12 +262,12 @@ void exportar(int *z, int n, int m){
 	fclose(fp);
 }
 
-void imprimir_vector(int* clase, int n){	// función para debbugear
+void imprimir_vector(int* vector, int n){	// función para debbugear
 	int i;
 	FILE *fp;
-	fp = fopen("clase.txt","a");	
+	fp = fopen("percola.txt","a");	
 	for (i=0; i<n; i++){
-		fprintf(fp, "%d\t     ", *(clase+i));
+		fprintf(fp, "%d\t     ", *(vector+i));
 		}
     	fprintf(fp, "\n");
 	fclose(fp);
@@ -279,7 +283,7 @@ void armar_red(int *red, int n){ // pienso en una red 3x3
 	*(red+4)=1;
 	*(red+5)=1;
 	*(red+6)=0;
-	*(red+7)=0;
+	*(red+7)=1;
 	*(red+8)=0;
 //	*(red+9)=1;
 
