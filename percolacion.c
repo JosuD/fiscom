@@ -1,71 +1,92 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
+#include <unistd.h>
+#include <string.h>
 
-#define P     1              // 1/2^P, P=16
-#define Z     1              // iteraciones, deberían ser 27000
-#define N     6             // lado de la red simulada
+#define P     16              // 1/2^P, P=16 precision
+#define Z     1000           // iteraciones, deberían ser 27000
+#define N     4             // lado de la red simulada
 
 
-void  llenar(int *red,int n,float prob); // Esta está
-int   hoshen(int *red,int n); // Esta parece que está
-void  imprimir(int* red, int n, int m); // Esta está
-int   randomvalue(float p); // Esta está
-int   actualizar(int *red,int *clase,int s,int frag, int i, int j); // Ya está
-void  etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j); // Ya está
-void  corregir_etiqueta(int *red,int *clase,int n); // Ya está
-int   percola(int *red,int n); // ya está
+void  llenar(int *red,int n,float prob); 
+int   hoshen(int *red,int n); 
+void  imprimir(int* red, int n, int m); 
+int   randomvalue(float p); 
+int   actualizar(int *red,int *clase,int s,int frag, int i, int j);
+void  etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j);
+void  corregir_etiqueta(int *red,int *clase,int n); 
+int   percola(int *red,int n); 
 void  exportar(int *z, int n, int m);
 void  imprimir_vector(int* vector, int n);
 void  armar_red(int *red, int n);
+void exportar_probabilidades(float prob, char *file);
 
 
 int main(int argc,char *argv[])
 {
   int    i,j, n, z,*red;
   float  prob,denominador;
+  time_t t_inicial, t_final;
+  double t_diferencia;
+  char   file[10];
 
   n=N;
   z=Z;
 
-  if (argc==3) 
+  if (argc==4) 
      {
        sscanf(argv[1],"%d",&n);
        sscanf(argv[2],"%d",&z);
+       //sscanf(argv[3],"%s",&file);
+	strcpy(file,argv[3]);
      }
     
   red=(int *)malloc(n*n*sizeof(int)); // Definimos el espacio de memoria para meter la red
+  srand(time(NULL));
+  time(&t_inicial);
 
   for(i=0;i<z;i++)
     {
       prob=0.5;
       denominador=2.0;
  
-      srand(time(NULL));
-
+      
+      //llenar(red,n,prob);
+      
       for(j=0;j<P;j++)
         {
           llenar(red,n,prob);
- 
+	  //exportar(red,n,n); 
 	  //armar_red(red, n); // armo una red a mano para testear hoshen
-          imprimir(red,n,n);
+          //imprimir(red,n,n);
   	  hoshen(red,n);
-	  imprimir(red,n,n);
-	  exportar(red,n,n);
+	  //imprimir(red,n,n);
+	  //exportar(red,n,n);
         
           denominador=2.0*denominador;
 
           if (percola(red,n)) 
              {prob+=(-1.0/denominador);
-	     printf("percolo!\n");} 
+	     printf("percolo!\n");
+	     } 
           else{ 
 	      prob+=(1.0/denominador);
-	      printf("no pecolo :(\n");}
+	      printf("no pecolo :(\n");
+	      }
+	printf("%f\n", prob);
         }
+	printf("Cambio de iteracion\n");	
+	exportar_probabilidades(prob, file);
+	//free(red);
     }
-
+  //exportar(red,n,n);
   free(red);
-
+  //sleep(3);
+  time(&t_final);
+  t_diferencia = t_final - t_inicial;
+  printf("Tiempo transcurrido en segundos: %.0f\n", difftime(t_final, t_inicial));
   return 0;
 }
 
@@ -94,7 +115,7 @@ int hoshen(int *red,int n)
   s1=0;
   frag=2; // última etiqueta conocida
   if (*red) frag=actualizar(red,clase,s1,frag, i, j);
-  imprimir(red, n,n);
+  //imprimir(red, n,n);
   
   // primera fila de la red
 
@@ -104,9 +125,9 @@ int hoshen(int *red,int n)
          {
            s1=*(red+j-1);  
            frag=actualizar(red+j,clase,s1,frag, i, j); // asigna una etiqueta o copia la "verdadera" etiqueta del vecino. No resuelve conflictos
-           //printf("la segunda direccion es %p\n", (void *) (red+j));  
+           
 	}
-    imprimir(red,n,n);
+    //imprimir(red,n,n);
     }
   
 
@@ -123,7 +144,7 @@ int hoshen(int *red,int n)
            frag=actualizar(red+i,clase,s1,frag, i, j);
 
          }
-      imprimir(red,n,n);
+      //imprimir(red,n,n);
       for(j=1;j<n;j++)
 	if (*(red+i+j))
 	  {
@@ -141,7 +162,7 @@ int hoshen(int *red,int n)
 	  
 	  }
 	//imprimir_vector(clase,n*n);
-	imprimir(red,n,n);
+	//imprimir(red,n,n);
     }
 
 
@@ -166,9 +187,9 @@ int randomvalue(float p){
 	float x;
 	x = (float)rand()/((float)RAND_MAX); // Valor de distribución uniforme entre 0 y 1
 	if(x<p)
-		val = 0;
-	else
 		val = 1;
+	else
+		val = 0;
         return val;
 }
 
@@ -182,28 +203,28 @@ void imprimir(int* red, int n, int m){
 }
 
 int actualizar(int *red,int *clase,int s,int frag, int i, int j){
-	printf("actualizar en posicion (%d, %d)\n", i, j);	
-	printf("entro frag = %d y s = %d \n", frag, s);
+	//printf("actualizar en posicion (%d, %d)\n", i, j);	
+	//printf("entro frag = %d y s = %d \n", frag, s);
 	//printf("la direccion que entra es %p\n", (void *) red);
 	if(s>0){
 		while(*(clase+s)<0)
 			s = - *(clase+s);		
 		*(red) = s;
 		*(clase+s)=s;
-		printf("copio s = %d\n", s);
+		//printf("copio s = %d\n", s);
 	}
 	else{
 		*(red) = frag;
 		*(clase+frag) = frag;
 		frag ++;
-		printf("nuevo fragmento\n");
+		//printf("nuevo fragmento\n");
 	}
 	return frag;	
 }
 
 void corregir_etiqueta(int *red, int *clase, int n){
 	int i,s;
-	printf("actua corregir etiqueta\n");	
+	//printf("actua corregir etiqueta\n");	
 	for(i=0; i<n*n; i++){
 		s = *(red+i);
 		while(*(clase+s)<0)
@@ -215,7 +236,7 @@ void corregir_etiqueta(int *red, int *clase, int n){
 
 
 void etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j){	
-	printf("actuo etiqueta falsa en posicion (%d, %d)\n", i, j);	
+	//printf("actuo etiqueta falsa en posicion (%d, %d)\n", i, j);	
 	while(*(clase+s1)<0)
 		s1 = - *(clase+s1);
 	while(*(clase + s2)<0)
@@ -244,8 +265,8 @@ int percola(int *red, int n){
 			}
 		}	
 	}
-	imprimir_vector(red, n);
-	imprimir_vector(red+n*(n-1), n);
+	//imprimir_vector(red, n);
+	//imprimir_vector(red+n*(n-1), n);
 	return out;
 }
 
@@ -253,13 +274,23 @@ void exportar(int *z, int n, int m){
 	int i,j;
 	FILE *fp;
 	fp = fopen("myfile.txt", "a");
-	for(i = 0; i< n; i++){ //fprintf(fp, "%d\t", *(z+i));
+	for(i = 0; i< n; i++){
 		for(j=0; j<m-1; j++){
 			fprintf(fp, "%d\t", *(z+n*i+j));		
 		}
 		fprintf(fp, "%d\n", *(z+n*i+j));
 	}
+	fprintf(fp, "\n");
 	fclose(fp);
+}
+
+void exportar_probabilidades(float prob, char *file){
+	FILE *fp;
+//	fp = fopen("L4.txt", "a");
+	fp = fopen(file, "a");
+	fprintf(fp, "%f\n", prob);
+	fclose(fp);
+
 }
 
 void imprimir_vector(int* vector, int n){	// función para debbugear
@@ -285,7 +316,6 @@ void armar_red(int *red, int n){ // pienso en una red 3x3
 	*(red+6)=0;
 	*(red+7)=1;
 	*(red+8)=0;
-//	*(red+9)=1;
 
 }
 
