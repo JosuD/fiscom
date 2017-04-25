@@ -9,7 +9,7 @@
 #define Z     1000           // iteraciones, deberían ser 27000
 #define N     4             // lado de la red simulada
 #define PS    100          // cantidad de valores de p para un barrido
-
+#define PCRIT 5.612907619259259739e-01 // P_critico para L= 4
 void  llenar(int *red,int n,float prob); 
 int   hoshen(int *red,int n, int *clusters); 
 void  imprimir(int* red, int n, int m); 
@@ -17,29 +17,32 @@ int   randomvalue(float p);
 int   actualizar(int *red,int *clase,int s,int frag, int i, int j);
 void  etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j);
 void  corregir_etiqueta(int *red,int *clase,int *clusters, int n); 
-int   percola(int *red,int n, int *dondepercola); 
+int   percola(int *red,int n);
+ 
 void  exportar(int *z, int n, int m);
-void  imprimir_vector(int* vector, int n);
-void  exportar_vector(float* vector, int n, char *nombre);
+void  imprimir_vector(int* vector, int n, char *nombre);
+void  exportar_vector(double* vector, int n, char *nombre);
 void  armar_red(int *red, int n);
 void  exportar_probabilidades(float prob, char *file);
 int   donde_percola(int *red, int n);
 float promedio_int(int *vector, int n);
-float promedio_float(float *vector, int n);
-float intensidad(int *clusters, int *dondepercola, int n);
+double promedio_float(double *vector, int n);
+double intensidad(int *clusters, int dondepercola, int n);
+int clasificar(int *clusters, int cant_clusters, int *tamanios, int n);
 
 
 int main(int argc,char *argv[])
 {
-  int    i,j, n, k, z,ps, *red, *clusters, tamanios[N*N], *dondepercola;
-  float  prob,denominador, paso, linspace_prob[PS], hist[PS], *intensidades_iter, *intensidades_prob;
-  time_t t_inicial, t_final;
-  double t_diferencia;
+  int    i,j, l, n, k, z, ps, *red, *clusters, *tamanios, dondepercola, cant_clusters;
+  float  prob,denominador, paso, linspace_prob[PS], pcrit;
+  time_t t_inicial, t_final, t_parcial;
+  double t_diferencia, *intensidades_iter, *intensidades_prob, hist[PS];
   char   file[10];
 
   n=N;
   z=Z;
   ps = PS;
+  pcrit = PCRIT;
 
   if (argc==4) 
      {
@@ -51,69 +54,76 @@ int main(int argc,char *argv[])
     
   red=(int *)malloc(n*n*sizeof(int)); // Definimos el espacio de memoria para meter la red
   clusters = (int *)malloc(n*n*sizeof(int)); // Defino un vector que guarda el tamaño de cada cluster, donde la posición coincide con la etiqueta
-  dondepercola = (int *)malloc(sizeof(int)); //Guardo en memoria dinámica (por ser cómodo) la etiqueda del primer cluster percolante (desprecio otros percolantes de la red)
-  intensidades_iter = (float *)malloc(z*sizeof(float));
-  intensidades_prob = (float *)malloc(ps*sizeof(float));
+
+ // dondepercola = (int *)malloc(sizeof(int)); //Guardo en memoria dinámica (por ser cómodo) la etiqueda del primer cluster percolante (desprecio otros percolantes de la red)
+  tamanios = (int *)malloc(n*n*sizeof(int)); // vector que guarda en el indice i la cantidad de clusters de tamaño i
+  intensidades_iter = (double *)malloc(z*sizeof(double));
+
+  intensidades_prob = (double *)malloc(ps*sizeof(double));
+  for(i=0; i<ps; i++) *(intensidades_prob+i) = 0.0;
 
 // Linspace de probabilidades
   paso = 1.0/ps;
-  *hist = 0;
+  *hist = 0.0;
   *linspace_prob = 0;
   for(i=1; i<ps; i++){
 	*(linspace_prob + i) = *(linspace_prob + i - 1) + paso;
-	*(hist+i) = 0;} //de paso inicializo el histograma en el mismo for
+	*(hist+i) = 0.0;} //de paso inicializo el histograma en el mismo for
   
   srand(time(NULL));
   time(&t_inicial);
 
 for(k=0; k<ps; k++){
+  printf("probabilidad = %d/100\n", k);
+  for(l=0; l<z; l++) *(intensidades_iter+l) = 0.0;
+
   for(i=0;i<z;i++)
     {
-      //prob=0.5;
-      //denominador=2.0;
- 
-      
-      //llenar(red,n,prob);
-      
-      //for(j=0;j<P;j++)
-        
-          llenar(red,n,*(linspace_prob + k));
-	  //exportar(red,n,n); 
-	  //armar_red(red, n); // armo una red a mano para testear hoshen
-          //imprimir(red,n,n);
-  	  hoshen(red,n, clusters);
-	  if(percola(red,n, dondepercola))
-		*(hist+k)+=1;
-	  *(intensidades_iter+i) = intensidad(clusters, dondepercola, n*n);
-	  //imprimir(red,n,n);
-	  //exportar(red,n,n);
-        
-/*          denominador=2.0*denominador;
+	  for(l=0; l<n*n; l++) *(clusters+l) = 0;
 
-          if (percola(red,n)) 
-             {prob+=(-1.0/denominador);
-	     printf("percolo!\n");
-	     } 
-          else{ 
-	      prob+=(1.0/denominador);
-	      printf("no pecolo :(\n");
-	      }
-	printf("%f\n", prob);
-        }
-	printf("Cambio de iteracion\n");	
-	exportar_probabilidades(prob, file); */ // Todo esto es para el pc del 1a
-	//free(red);
+          //printf("Iteracion numero %d\n", i);
+          llenar(red,n,*(linspace_prob + k));
+  	  hoshen(red,n, clusters);
+	  if(percola(red,n)){
+		*(hist+k)+=1.0;
+		 dondepercola = donde_percola(red, n);
+	  //printf("percolo en %d\n", dondepercola);
+		*(intensidades_iter+i) = intensidad(clusters, dondepercola, n);
+		//printf("intensidades_iter = %g\n", *(intensidades_iter+i));
+	  }
+	  
     }
-	*(intensidades_prob+k) = promedio_float(intensidades_iter, z);
+         //printf("Cambio de iteracion ---------\n");
+	*(intensidades_prob+k) = promedio_float(intensidades_iter, z); //descarto las que no percolaron?
+	//printf("intensidad_prob = %g en k = %d\n", *(intensidades_prob+k), k);
 }
   //exportar(red,n,n);
-  free(red);
-  free(intensidades_iter);
+  //free(red);
+  //free(intensidades_iter);
   for(k=0; k<ps; k++){
-	*(hist+k) = *(hist+k)/z;}
+	*(hist+k) = *(hist+k)/(double)z;}
   exportar_vector(hist, ps, "histograma.txt");
   exportar_vector(intensidades_prob, ps, "intensidades.txt");
 
+  if(n==4){
+	cant_clusters = 0.0;
+	printf("Entro en el loop de tamanios\n");
+	for(i=0;i<z;i++){
+		//red=(int *)malloc(n*n*sizeof(int));
+		llenar(red, n, pcrit);
+		printf("llene, i = %d\n", i);
+		imprimir(red, n, n);
+		hoshen(red, n, clusters);
+		printf("etiquete\n");
+		cant_clusters = clasificar(clusters, cant_clusters, tamanios, n); //esta función me arma el n_s = tamaños
+		imprimir(tamanios, n,n);		
+		printf("clasifique\n");
+		printf("termine interacion %d\n", i);
+		//free(red);
+	}
+  }
+  //free(red);
+  imprimir_vector(tamanios, n*n, "tamanios.txt");
   time(&t_final);
   t_diferencia = t_final - t_inicial;
   printf("Tiempo transcurrido en segundos: %.0f\n", difftime(t_final, t_inicial));
@@ -136,6 +146,7 @@ int hoshen(int *red,int n, int *clusters)
   i = 0;
   j = 0;
   clase=(int *)malloc(n*n*sizeof(int));
+  //printf("abri clase\n");
 
   for(k=0;k<n*n;k++) *(clase+k)=frag; // Lleno de ceros el vector clase, que recién sólo estaba definido su espacio en memoria
   
@@ -259,7 +270,7 @@ void corregir_etiqueta(int *red, int *clase, int *clusters, int n){
 		while(*(clase+s)<0)
 			s = - *(clase+s);
 		*(red+i) = s;
-		*(clusters+i)+=1;
+		*(clusters+s)+=1;
 	}
 }
 
@@ -283,56 +294,77 @@ void etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j){
 	}
 }
 
-int percola(int *red, int n, int *dondepercola){
+int percola(int *red, int n){
 	int i,j, out;
 	out = 0;
 	for(i=0; i<n; i++){
 		for(j=0; j<n; j++){
 			if((*(red+i)!=0) && (*(red +n*(n-1) + j) != 0) && (*(red + i) == *(red +n*(n-1) + j))){ //pido celdas !=0 que valgan lo mismo
 				out = 1;
-				*(dondepercola) = *(red+i);
 				break;
 			}
 		}	
 	}
-	//imprimir_vector(red, n);
-	//imprimir_vector(red+n*(n-1), n);
+	return out;
+}
+
+int donde_percola(int *red, int n){
+	int i,j, out;
+	out = 0;
+	for(i=0; i<n; i++){
+		for(j=0; j<n; j++){
+			if((*(red+i)!=0) && (*(red +n*(n-1) + j) != 0) && (*(red + i) == *(red +n*(n-1) + j))){ //pido celdas !=0 que valgan lo mismo
+				out = *(red + i);
+				break;
+			}
+		}	
+	}
 	return out;
 }
 
 
-float intensidad(int *clusters, int *dondepercola, int n){
+double intensidad(int *clusters, int dondepercola, int n){
 	int numerador, i;
-	float res, denominador;	
-	numerador = *(clusters + *(dondepercola));
-	denominador = 0.0;
-	for(i=0; i<n; i++){
-		denominador += *(clusters + i);
-	}
-	res = numerador/denominador;
+	double res;	
+	numerador = *(clusters + dondepercola); //tamaño del cluster que percoló
+	res = (double)(numerador)/(double)(n*n);// lo divido por el total de celdas
+	//printf("numerador=%f y denominador=%f \n. La division da %f. Percola en %d\n", (float)numerador, denominador, res, dondepercola);
 	return res;
 }
+
+int clasificar(int *clusters, int cant_clusters, int *tamanios, int n){
+	int i;	
+	for(i=0; i<n*n; i++){
+		cant_clusters += *(clusters + i);
+		if(*(clusters+i) != 0){
+			*(tamanios+*(clusters + i))+=1;
+		}
+	}
+	return cant_clusters;
+}
+
+
 
 float promedio_int(int *vector, int n){
 	int i;
-	float res;
-	res = 0;
+	double res;
+	res = 0.0;
 	for(i=0; i<n; i++){
-		res += *(vector + i);
+		res += (double)(*(vector + i));
 	}
-	res = res/n;
-	return res;
+	res = res/(double)n;
+	return (float)res;
 }
 
-float promedio_float(float *vector, int n){
+double promedio_float(double *vector, int n){
 	int i;
-	float res;
-	res = 0;
+	double res;
+	res = 0.0;
 	for(i=0; i<n; i++){
 		res += *(vector + i);
 	}
-	res = res/n;
-	return res;
+	res = res/(double)n;
+	return (float)res;
 }
 
 
@@ -359,24 +391,24 @@ void exportar_probabilidades(float prob, char *file){
 
 }
 
-void imprimir_vector(int* vector, int n){	// función para debbugear
-	int i;
-	FILE *fp;
-	fp = fopen("histograma.txt","a");	
-	for (i=0; i<n; i++){
-		fprintf(fp, "%d\t     ", *(vector+i));
-		}
-    	fprintf(fp, "\n");
-	fclose(fp);
-	
-}
-
-void  exportar_vector(float* vector, int n, char *nombre){
+void imprimir_vector(int* vector, int n, char *nombre){	// función para debbugear
 	int i;
 	FILE *fp;
 	fp = fopen(nombre,"a");	
 	for (i=0; i<n-1; i++){
-		fprintf(fp, "%f\t     ", *(vector+i));
+		fprintf(fp, "%d\t     ", *(vector+i));
+		}
+    	fprintf(fp, "%d\n", *(vector+i));
+	fclose(fp);
+	
+}
+
+void  exportar_vector(double* vector, int n, char *nombre){
+	int i;
+	FILE *fp;
+	fp = fopen(nombre,"a");	
+	for (i=0; i<n-1; i++){
+		fprintf(fp, "%g\t     ", *(vector+i));
 		}
     	fprintf(fp, "%f\n     ", *(vector+i));
 	fclose(fp);
