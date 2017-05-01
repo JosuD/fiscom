@@ -42,8 +42,8 @@ plt.title('Intensidad del cluster')
 plt.figure()
 x = np.arange(0,len(Data3))
 plt.plot(x, Data3, 'g*')
-plt.xscale('log')
-plt.yscale('log')
+#plt.xscale('log')
+#plt.yscale('log')
 plt.title('tamanios vs indice')
 
 
