@@ -11,12 +11,12 @@
 #define PS    100          // cantidad de valores de p para un barrido
 #define PCRIT 5.612907619259259739e-01 // P_critico para L= 4
 void  llenar(int *red,int n,float prob); 
-int   hoshen(int *red,int n, int *clusters); 
+int   hoshen(int *red,int n, int *clusters, int *respuesta); 
 void  imprimir(int* red, int n, int m); 
 int   randomvalue(float p); 
 int   actualizar(int *red,int *clase,int s,int frag, int i, int j);
 void  etiqueta_falsa(int *red,int *clase,int s1,int s2, int i, int j);
-void  corregir_etiqueta(int *red,int *clase,int *clusters, int n); 
+void  corregir_etiqueta(int *red,int *clase,int *clusters, int n, int *respuesta); 
 int   percola(int *red,int n);
  
 void  exportar(int *z, int n, int m);
@@ -37,10 +37,10 @@ int indice_max(int *ns_i, int ps);
 
 int main(int argc,char *argv[])
 {
-  int    i,j, l, n, k, z, ps, *red, *clusters, *tamanios, dondepercola, cant_clusters, *respuesta, *ns_iter, smax, *ns_i, indice;
+  int    i,j, l, n, k, z, ps, *red, *clusters, *tamanios, dondepercola, cant_clusters, *respuesta, *ns_iter, smax, *ns_i, indice, clusters_percolantes;
   float  prob,denominador, paso, linspace_prob[PS], pcrit;
   time_t t_inicial, t_final, t_parcial;
-  double *intensidades_iter, *intensidades_prob, hist[2*PS], *p_max, *ns_prob;
+  double *intensidades_iter, *intensidades_prob, hist[2*PS], *p_max, *ns_prob, *m2;
   char   file[2*10];
 
   n=N;
@@ -68,6 +68,7 @@ int main(int argc,char *argv[])
   for(i=0; i<2*ps; i++) *(intensidades_prob+i) = 0.0;
 
   respuesta = (int *)malloc(n*sizeof(int));
+  for(i=0; i<n; i++) *(respuesta+i)=0;
 
 // Linspace de probabilidades
   paso = 1.0/ps;
@@ -90,7 +91,7 @@ for(k=0; k<ps; k++){
 
           //printf("Iteracion numero %d\n", i);
           llenar(red,n,*(linspace_prob + k));
-  	  hoshen(red,n, clusters);
+  	  hoshen(red,n, clusters, respuesta);
 	  if(percola(red,n)){
 		*(hist+k)+=1.0;
 		 dondepercola = donde_percola(red, n);
@@ -121,7 +122,7 @@ for(k=0; k<ps; k++){
 		llenar(red, n, pcrit);
 		printf("llene, i = %d\n", i);
 		imprimir(red, n, n);
-		hoshen(red, n, clusters);
+		hoshen(red, n, clusters, respuesta);
 		printf("etiquete\n");
 		cant_clusters = clasificar(clusters, cant_clusters, tamanios, n); //esta función me arma el n_s = tamaños
 //		imprimir(tamanios, n,n);		
@@ -162,7 +163,7 @@ for(k=0; k<ps; k++){
 
 			for(l=0; l<n*n; l++) *(clusters+l) = 0;
 			llenar(red, n, *(linspace_prob+i));
-			hoshen(red, n, clusters);
+			hoshen(red, n, clusters, respuesta);
 			cant_clusters = clasificar(clusters, cant_clusters, tamanios, n);
 			for(k=0; k<smax; k++){
 				*(ns_iter+k) += *(tamanios+smax+k);
@@ -193,7 +194,52 @@ for(k=0; k<ps; k++){
 	  exportar_matriz(ns_prob, smax, ps);
   }
 
+  if(n==33){
+	  clusters_percolantes = 0;
+	  smax = 15; // cantidad de s usamos
+	// Linspace fino alrededor de pc
+	  paso = 0.2/ps; // voy a ir de 0.4 a 0.6
+	  *linspace_prob = 0.45; // valor inicial
+	  for(i=1; i<ps; i++){
+		*(linspace_prob + i) = *(linspace_prob + i - 1) + paso;
+	  }
 
+	  for(i=0; i<n*n; i++) *(tamanios+i) = 0;	  // inicializo tamaños
+	  cant_clusters = 0.0;
+
+	  ns_iter = (int *)malloc(n*n*sizeof(int));	// vector donde acumulo los ns para luego dividir por z
+	  for(i=0; i<n*n; i++) *(ns_iter+i) = 0;
+
+	  ns_prob = (double *)malloc(smax*ps*sizeof(double)); // aquí guardo los vectores ns para cada probabilidad del intervalo
+	  for(i=0; i<smax*ps; i++) *(ns_prob+i) = 0.0;
+
+	  m2 = (double *)malloc(ps*sizeof(double));
+	  for(i=0; i<ps; i++) *(m2+i) = 0.0;
+	  
+	  for(i=0; i<ps; i++){
+		for(j=0; j<z; j++){
+
+			for(l=0; l<n*n; l++) *(clusters+l) = 0;
+			for(l=0; i<n; i++) *(respuesta+i)=0;
+			llenar(red, n, *(linspace_prob+i));
+			clusters_percolantes = percolantes(red, n, respuesta);
+			hoshen(red, n, clusters, respuesta); //falta discriminar los que son percolantes
+			cant_clusters = clasificar(clusters, cant_clusters, tamanios, n);
+			for(k=0; k<n*n; k++){
+				*(ns_iter+k) += *(tamanios+k);
+			}
+		}
+		for(j=1; j<n*n; j++){
+			*(m2+i) += (double)(*(ns_iter+j))/(double)(z)*j*j;
+			printf("para p = %f y s = %d, m2 = %f\n", *(linspace_prob+i),j, *(m2+i));
+		}
+	  printf("nueva probabilidad %d/100\n", i);
+	  }
+	  exportar_vector(m2, ps, "m2.txt");
+
+
+
+  }
 
   time(&t_final);
   printf("Tiempo transcurrido en segundos: %.0f\n", difftime(t_final, t_inicial));
@@ -201,7 +247,7 @@ for(k=0; k<ps; k++){
 }
 
 
-int hoshen(int *red,int n, int *clusters)
+int hoshen(int *red,int n, int *clusters, int *respuesta)
 {
   /*
     Esta funcion implementa en algoritmo de Hoshen-Kopelman.
@@ -276,7 +322,7 @@ int hoshen(int *red,int n, int *clusters)
     }
 
 
-  corregir_etiqueta(red,clase,clusters,n);
+  corregir_etiqueta(red,clase,clusters,n, respuesta);
 
   free(clase);
 
@@ -332,15 +378,19 @@ int actualizar(int *red,int *clase,int s,int frag, int i, int j){
 	return frag;	
 }
 
-void corregir_etiqueta(int *red, int *clase, int *clusters, int n){
-	int i,s;
+void corregir_etiqueta(int *red, int *clase, int *clusters, int n, int *respuesta){
+	int i,j,s;
 	//printf("actua corregir etiqueta\n");	
 	for(i=0; i<n*n; i++){
 		s = *(red+i);
 		while(*(clase+s)<0)
 			s = - *(clase+s);
 		*(red+i) = s;
-		*(clusters+s)+=1;
+		for(j=0; j<n; j++){
+			if(s!=*(respuesta+j)){
+				*(clusters+s)+=1;
+			}
+		}
 	}
 }
 
