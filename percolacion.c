@@ -214,9 +214,10 @@ for(k=0; k<ps; k++){
 	  for(i=0; i<smax*ps; i++) *(ns_prob+i) = 0.0;
 
 	  m2 = (double *)malloc(ps*sizeof(double));
-	  for(i=0; i<ps; i++) *(m2+i) = 0.0;
+          for(l=0; l<ps; l++) *(m2+l) = 0.0;
 	  
 	  for(i=0; i<ps; i++){
+	  for(l=0; l<n*n; l++) *(ns_iter+l) = 0;
 		for(j=0; j<z; j++){
 
 			for(l=0; l<n*n; l++) *(clusters+l) = 0;
@@ -379,18 +380,20 @@ int actualizar(int *red,int *clase,int s,int frag, int i, int j){
 }
 
 void corregir_etiqueta(int *red, int *clase, int *clusters, int n, int *respuesta){
-	int i,j,s;
+	int i,j,s,ok;
 	//printf("actua corregir etiqueta\n");	
 	for(i=0; i<n*n; i++){
 		s = *(red+i);
 		while(*(clase+s)<0)
 			s = - *(clase+s);
 		*(red+i) = s;
+		ok = 1;
 		for(j=0; j<n; j++){
-			if(s!=*(respuesta+j)){
-				*(clusters+s)+=1;
+			if(s==*(respuesta+j)){
+				ok = 0;
 			}
 		}
+		if(ok) *(clusters+s)+=1;
 	}
 }
 
